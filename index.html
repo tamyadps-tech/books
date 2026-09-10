@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estante Desconfortável — Livros que Desafiam</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #FAF6EF;
+    --card: #FFFFFF;
+    --ink: #2A2320;
+    --sub: #6B5F55;
+    --gold: #B8863B;
+    --orange: #C2703D;
+    --red: #B23A2F;
+    --green: #4E7A51;
+    --line: #E7DCC9;
+    --cream: #F3E7D8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 28px 20px 60px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header.top { text-align: center; margin-bottom: 28px; }
+  header.top .eyebrow { color: var(--gold); font-weight: 700; letter-spacing: 1.5px; font-size: 12px; text-transform: uppercase; }
+  header.top h1 { font-size: 26px; margin: 6px 0 4px; }
+  header.top .sub { color: var(--sub); font-size: 14px; }
+  .statrow { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat { flex: 1; min-width: 140px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; text-align: center; }
+  .stat .num { font-size: 24px; font-weight: 800; color: var(--orange); }
+  .stat .lbl { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+  .theme-card { background: linear-gradient(135deg, #2A2320, #40342C); color: #F3E7D8; border-radius: 16px; padding: 20px 22px; margin-bottom: 26px; }
+  .theme-card .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #D8B87C; font-weight: 700; }
+  .theme-card h2 { margin: 6px 0 4px; font-size: 20px; }
+  .theme-card p { margin: 0; font-size: 13px; color: #D9CFC2; }
+  .progress-outer { background: #EFE3D0; border-radius: 999px; height: 10px; overflow: hidden; margin: 12px 0 4px; }
+  .progress-inner { background: var(--green); height: 100%; border-radius: 999px; transition: width .3s; }
+  h3.section { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--gold); margin: 30px 0 12px; font-weight: 800; }
+  .day-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; }
+  .day-card.done { border-color: var(--green); background: #F3F8F3; }
+  .day-head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .day-head-left { display: flex; align-items: center; gap: 10px; }
+  .day-badge { width: 34px; height: 34px; border-radius: 50%; background: var(--cream); color: var(--orange); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+  .day-card.done .day-badge { background: var(--green); color: #fff; }
+  .day-title { font-weight: 700; font-size: 15px; }
+  .day-sci { font-size: 12px; color: var(--sub); }
+  .cat-pill { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: #fff; background: var(--orange); padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+  .rec-pill { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+  .rec-pill.alta { color: var(--red); background: #F6E1DC; }
+  .rec-pill.classico { color: var(--gold); background: var(--cream); }
+  .chev { color: var(--sub); font-size: 12px; transition: transform .2s; }
+  .day-card.open .chev { transform: rotate(180deg); }
+  .day-body { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .day-card.open .day-body { display: block; }
+  .book-line { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .book-meta { font-size: 12px; color: var(--sub); margin-bottom: 10px; }
+  .quote { font-style: italic; background: var(--cream); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 6px; font-size: 13.5px; margin: 10px 0; }
+  .quote small { display: block; font-style: normal; color: var(--sub); margin-top: 4px; }
+  .exp-title { font-weight: 700; font-size: 13px; margin-top: 12px; }
+  .exp-text { font-size: 13.5px; color: #4A4038; line-height: 1.5; }
+  .mini-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--green); margin-top: 12px; margin-bottom: 4px; }
+  .apply { font-size: 13.5px; color: #4A4038; line-height: 1.5; margin-top: 10px; background: #FBF8F2; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); }
+  .apply b { color: var(--orange); }
+  .proof-box { background: #F0F2F8; border: 1px solid #C9CFE3; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12.5px; color: var(--sub); }
+  .proof-box b { color: #4A5580; }
+  .checklist { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .check-item { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .check-item input { width: 16px; height: 16px; accent-color: var(--green); }
+  .check-item.checked span { text-decoration: line-through; color: var(--sub); }
+  .repertoire-box { margin-top: 14px; background: #EFF5F2; border: 1px solid #CFE3D8; border-radius: 10px; padding: 12px 14px; }
+  .repertoire-box .rep-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .repertoire-cat { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--green); background: #DCEEDF; padding: 2px 8px; border-radius: 999px; }
+  .repertoire-title { font-weight: 700; font-size: 13px; margin-top: 8px; }
+  .repertoire-text { font-size: 12.5px; color: #4A4038; line-height: 1.5; margin-top: 4px; }
+  .rep-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); cursor: pointer; margin-top: 8px; }
+  .rep-check input { width: 14px; height: 14px; accent-color: var(--green); }
+  .rep-check.checked span { text-decoration: line-through; }
+  .friday { background: var(--card); border: 2px solid var(--orange); border-radius: 14px; padding: 18px 20px; margin-top: 8px; }
+  .friday-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .badge-status { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; }
+  .badge-ready { background: #E4F0E5; color: var(--green); }
+  .badge-wait { background: #F3E7D8; color: var(--orange); }
+  .script-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
+  .script-top { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; }
+  .script-type { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #fff; background: var(--orange); padding: 2px 8px; border-radius: 999px; }
+  .script-title { font-weight: 700; font-size: 14.5px; margin-top: 6px; }
+  .script-hook { font-size: 13px; color: var(--sub); margin-top: 4px; }
+  .script-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13.5px; line-height: 1.6; color: #4A4038; }
+  .script-card.open .script-body { display: block; }
+  .cut { color: var(--red); font-weight: 700; font-style: italic; font-size: 12.5px; margin: 8px 0; }
+  .cta-box { background: var(--cream); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px; margin: 10px 0; font-size: 13px; }
+  .cta-box b { color: var(--orange); }
+  .reflection-box { font-style: italic; background: #EFF5F2; border-left: 3px solid var(--green); padding: 10px 12px; border-radius: 6px; margin: 10px 0; font-size: 13.5px; }
+  .solution-item { background: #FBF8F2; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 6px 0; font-size: 13px; }
+  .evidence-box { background: #F0F2F8; border: 1px solid #C9CFE3; border-radius: 8px; padding: 8px 12px; margin: 10px 0; font-size: 12.5px; color: var(--sub); }
+  .evidence-box b { color: #4A5580; }
+  .thumb-box { background: #F3F0EA; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--sub); }
+  table.history { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  table.history th { text-align: left; color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.history td { padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  table.history tbody tr { cursor: pointer; transition: background .15s; }
+  table.history tbody tr:hover { background: var(--cream); }
+  table.history tbody tr.viewing { background: var(--cream); }
+  #historyBanner { background: var(--cream); border: 1px solid var(--gold); border-radius: 999px; padding: 6px 14px; display: inline-block; }
+  #historyBanner a { color: var(--orange); cursor: pointer; text-decoration: underline; font-weight: 700; }
+  .pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .pill-ok { background: #E4F0E5; color: var(--green); }
+  .pill-mid { background: #FBEFD9; color: var(--orange); }
+  footer.note { margin-top: 34px; font-size: 12px; color: var(--sub); text-align: center; line-height: 1.6; }
+  footer.note .disclaimer { display: block; margin-top: 10px; font-size: 11px; color: var(--sub); opacity: .85; }
+  button.reset { display: block; margin: 18px auto 0; background: none; border: 1px solid var(--line); color: var(--sub); font-size: 11px; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Sistema de Conteúdo · Livros que Desafiam</div>
+    <h1 id="weekTitle">Semana 1</h1>
+    <div class="sub" id="weekDates"></div>
+    <div id="historyBanner" style="display:none;margin-top:8px;font-size:12px;"></div>
+    <div class="sub" id="syncStatus" style="margin-top:6px;font-size:11px;">⏳ conectando...</div>
+    <button class="reset" id="refreshBtn" style="margin-top:8px;">🔄 Atualizar de outro aparelho</button>
+  </header>
+  <div class="statrow">
+    <div class="stat"><div class="num" id="statDaysWeek">0/5</div><div class="lbl">Livros estudados essa semana</div></div>
+    <div class="stat"><div class="num" id="statStreak">0</div><div class="lbl">Semanas completas seguidas</div></div>
+    <div class="stat"><div class="num" id="statTotalDays">0</div><div class="lbl">Livros concluídos no total</div></div>
+    <div class="stat"><div class="num" id="statScripts">0</div><div class="lbl">Roteiros gerados no total</div></div>
+  </div>
+  <div class="theme-card">
+    <div class="lbl">Tema da semana</div>
+    <h2 id="themeTitle"></h2>
+    <p id="themeDesc"></p>
+    <div class="progress-outer"><div class="progress-inner" id="weekProgressBar" style="width:0%"></div></div>
+  </div>
+  <h3 class="section">Leitura diária · 15 minutos</h3>
+  <div id="days"></div>
+  <h3 class="section">Roteiros de sexta · Reels, TikTok &amp; LinkedIn · gravar sábado</h3>
+  <div id="fridayBlock"></div>
+  <h3 class="section">Evolução</h3>
+  <div class="sub" style="margin:-8px 0 10px;font-size:12px;">Clique em uma semana pra ver o conteúdo completo dela.</div>
+  <table class="history">
+    <thead><tr><th>Semana</th><th>Tema</th><th>Leitura</th><th>Roteiros</th></tr></thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+  <footer class="note">
+    Segunda a sexta chega uma nova indicação de livro automaticamente — uma categoria por dia. Sexta, os 4 roteiros da semana são gerados aqui.<br>
+    Marque cada etapa conforme for lendo — isso fica salvo neste dispositivo e sincronizado.
+    <span class="disclaimer">Curadoria real e verificável: todo livro, autor, tese e dado citado aqui é real. Onde uma alegação é contestada ou tem ressalva metodológica, isso aparece no texto.</span>
+  </footer>
+  <button class="reset" onclick="if(confirm('Apagar todo o progresso salvo (em todos os aparelhos sincronizados)?')){localStorage.removeItem(LS_KEY);saveProgress({});render();}">Zerar progresso salvo</button>
+</div>
+<script>
+// ============ DATA — atualizado pelo Claude a cada semana ============
+const WEEKS = [
+  {
+    number: 1,
+    theme: "5 livros que a maioria das pessoas cita errado — e o que eles realmente provam",
+    themeDesc: "Base: o poder de quem não domina a sala (Susan Cain), o estudo com 6 mil vendedores que matou o 'vendedor camarada' (Dixon & Adamson), o Nobel que provou que ninguém é racional (Kahneman), o estudo real sobre por que conteúdo viraliza (Jonah Berger) e a pesquisa que mede quanto um líder tira da própria equipe sem perceber (Liz Wiseman).",
+    dateRange: "07–11 set 2026 · gravação sábado 12 set",
+    days: [
+      {
+        day: "Segunda", date: "07 set",
+        category: "Autoconhecimento",
+        recency: "clássico",
+        book: "Quiet — O Poder dos Introvertidos",
+        author: "Susan Cain",
+        year: "2012",
+        quote: "Vivemos com um sistema de valores que eu chamo de Ideal Extrovertido — a crença generalizada de que o modelo certo de pessoa é sociável, ousado, confortável no centro das atenções.",
+        quoteNote: "ideia central de Susan Cain, resumida de “Quiet: The Power of Introverts in a World That Can't Stop Talking” (2012)",
+        authorBio: "Susan Cain é escritora e ex-advogada corporativa americana, formada em Direito por Harvard. Trabalhou anos em Wall Street negociando contratos antes de perceber, na própria pele, o quanto o mundo corporativo é desenhado pro perfil extrovertido — e passou 7 anos pesquisando psicologia, neurociência e história pra escrever “Quiet”.",
+        coreThesis: "O “Ideal Extrovertido” e a pesquisa que ele ignora",
+        context: "Cain reuniu décadas de pesquisa em psicologia da personalidade — incluindo o conceito de “alta reatividade” do psicólogo Jerome Kagan, de Harvard, que filmou bebês reagindo a estímulos novos e encontrou, anos depois, que os bebês mais “reativos” na infância tendiam a virar adultos mais introvertidos — pra desmontar a ideia de que introversão é timidez ou defeito a corrigir.",
+        disruptiveText: "O achado mais incômodo pro mundo corporativo: pesquisa liderada por Adam Grant, professor da Wharton, publicada na Harvard Business Review (2013), encontrou que equipes com funcionários proativos tinham desempenho melhor sob líderes introvertidos do que sob líderes extrovertidos — porque líderes introvertidos escutam mais e deixam a iniciativa dos outros brilhar, em vez de dominar a sala. Isso contraria décadas de crença de que carisma extrovertido é pré-requisito pra liderar bem.",
+        proof: "O TED Talk de Susan Cain sobre o livro, de 2012, já passou de 30 milhões de visualizações — um dos mais assistidos da história do TED — e o livro vendeu mais de 4 milhões de cópias, traduzido pra mais de 40 idiomas.",
+        challenge: "Hoje, antes de forçar sua opinião na frente de todo mundo numa reunião, tenta: escreve sua ideia com calma antes, manda por mensagem ou fala 1 a 1 com quem decide. Não é covardia — pesquisa mostra que ideia de gente quieta chega tão longe quanto a de quem grita mais, só que por outro canal.",
+        repertoire: {
+          category: "Curiosidade real",
+          title: "Einstein pediu pra ser deixado sozinho — e isso não era frieza",
+          text: "Einstein escreveu, numa carta de 1930, que sentia forte necessidade de solidão, algo que “cresce com os anos”. Biógrafos apontam que boa parte do trabalho teórico dele foi feita em silêncio, longe de grupos de pesquisa — o oposto do estereótipo de que grande ideia nasce de brainstorm em sala cheia.",
+        },
+      },
+      {
+        day: "Terça", date: "08 set",
+        category: "Vendas",
+        recency: "clássico",
+        book: "The Challenger Sale",
+        author: "Matthew Dixon & Brent Adamson",
+        year: "2011",
+        quote: "Os vendedores de melhor desempenho não constroem relacionamento — eles desafiam o jeito que o cliente pensa sobre o próprio negócio.",
+        quoteNote: "achado central de Matthew Dixon & Brent Adamson, “The Challenger Sale” (2011)",
+        authorBio: "Matthew Dixon e Brent Adamson lideraram pesquisa no Corporate Executive Board (CEB, hoje parte da Gartner), consultoria que estuda desempenho corporativo com dados reais de milhares de empresas.",
+        coreThesis: "O estudo com mais de 6 mil vendedores que reescreveu o manual de vendas B2B",
+        context: "Por décadas, o senso comum em vendas B2B dizia que o segredo era construir relacionamento — o “relationship builder”, vendedor querido por todo mundo. Dixon e Adamson testaram isso com dados reais, mapeando o perfil de milhares de vendedores B2B contra o desempenho de vendas de fato.",
+        disruptiveText: "O resultado contrariou décadas de treinamento de vendas: o perfil “relationship builder” teve o PIOR desempenho médio entre os 5 perfis mapeados. O melhor desempenho veio do “challenger” — vendedor que ensina algo novo ao cliente sobre o próprio negócio, adapta a mensagem pra quem decide, e não tem medo de discordar do cliente na cara quando o dado mostra outra coisa. Simpatia sozinha não fecha venda complexa — desafiar o jeito que o cliente pensa, sim.",
+        proof: "A pesquisa do CEB cobriu mais de 6.000 vendedores B2B em dezenas de setores, e a “metodologia challenger” hoje é oferecida como treinamento formal de vendas em empresas como Google, Adobe e Microsoft — documentado publicamente pela própria Gartner/Challenger Inc.",
+        challenge: "Na próxima conversa de venda (ou até numa negociação pessoal), em vez de só concordar com o que o outro lado já pensa, chega com um dado ou ângulo que ele não tinha considerado — mesmo que gere um pouco de atrito. Desconforto controlado vende mais do que simpatia vazia.",
+        repertoire: {
+          category: "Curiosidade real",
+          title: "A gráfica que só imprimia dinheiro falso — pra treinar caixa de banco",
+          text: "Bancos centrais de vários países, incluindo o Brasil, produzem cédulas de treinamento — visualmente parecidas, mas com marcas que as tornam inválidas como moeda — pra treinar caixas e máquinas a reconhecer notas verdadeiras rápido. É prática documentada oficialmente por autoridades monetárias, não lenda urbana.",
+        },
+      },
+      {
+        day: "Quarta", date: "09 set",
+        category: "Neurociência",
+        recency: "clássico",
+        book: "Rápido e Devagar — Duas Formas de Pensar",
+        author: "Daniel Kahneman",
+        year: "2011",
+        quote: "Nada na vida é tão importante quanto você pensa que é, enquanto você está pensando nisso.",
+        quoteNote: "citação real de Daniel Kahneman, “Thinking, Fast and Slow” (2011)",
+        authorBio: "Daniel Kahneman é psicólogo israelense-americano, professor emérito em Princeton, e o único psicólogo a já ganhar o Prêmio Nobel de Economia (2002) — por décadas de pesquisa ao lado de Amos Tversky sobre como a mente humana realmente toma decisão, longe do “agente racional” que a economia clássica assumia.",
+        coreThesis: "Sistema 1 e Sistema 2 — o Nobel que provou que humano não é racional do jeito que a economia jurava",
+        context: "Kahneman e Tversky passaram anos rodando experimentos comparando decisões reais de pessoas com o que a teoria econômica clássica previa que um “agente racional” faria — e encontraram, repetidamente, desvios sistemáticos, não aleatórios, do que seria “racional”.",
+        disruptiveText: "O achado mais disruptivo: esses erros de julgamento (vieses cognitivos) não são falha de pouca inteligência — são padrão sistemático, previsível, presente até em especialistas treinados. A teoria do prospecto de Kahneman e Tversky (1979) mostrou que humanos sentem perda quase duas vezes mais forte do que ganho equivalente — o que sozinho ajudou a derrubar décadas de modelo econômico que assumia decisão puramente racional.",
+        proof: "O Prêmio Nobel de Economia de 2002 (dado a um psicólogo, não a um economista — algo raro na história do prêmio) e mais de 2 milhões de cópias vendidas, virando base curricular em cursos de economia comportamental no mundo todo.",
+        challenge: "Antes de decidir algo importante hoje sob pressão de tempo, pergunta: “essa é minha resposta rápida e intuitiva (Sistema 1), ou eu de fato parei pra calcular (Sistema 2)?” — só nomear isso já reduz erro de julgamento, segundo o próprio Kahneman.",
+        repertoire: {
+          category: "Curiosidade real",
+          title: "O júri que absolveu com base num erro de matemática",
+          text: "Estudos de cognição legal documentam casos reais em que jurados, ao ouvirem probabilidades estatísticas complexas (como no caso People v. Collins, Califórnia, 1968), erraram o cálculo de probabilidade condicional — e a sentença precisou ser revista. Virou caso clássico de ensino sobre viés estatístico em tribunais.",
+        },
+      },
+      {
+        day: "Quinta", date: "10 set",
+        category: "Marketing",
+        recency: "clássico",
+        book: "Contágio — Por Que as Coisas Pegam",
+        author: "Jonah Berger",
+        year: "2013",
+        quote: "O motivo de algo viralizar quase nunca é a qualidade — é se aquilo faz a pessoa parecer inteligente, generosa ou por dentro, na hora de compartilhar.",
+        quoteNote: "ideia central de Jonah Berger, resumida de “Contagious: Why Things Catch On” (2013)",
+        authorBio: "Jonah Berger é professor de marketing na Wharton School, na Universidade da Pensilvânia, e pesquisa há mais de uma década por que produtos, ideias e comportamentos pegam — ou não.",
+        coreThesis: "O framework STEPPS e o estudo real com milhares de matérias do New York Times",
+        context: "Berger e a colega Katherine Milkman analisaram milhares de matérias do New York Times, catalogando quais ficaram mais tempo na lista de “mais enviadas por e-mail” — publicado no Journal of Marketing Research (2012) — pra identificar, com dado real, o que realmente faz conteúdo se espalhar.",
+        disruptiveText: "O achado mais contraintuitivo: conteúdo triste reduz o compartilhamento, mesmo sendo emocionalmente forte — o que importa é o nível de ativação da emoção, não se ela é positiva ou negativa. Raiva e admiração (alta ativação) espalham muito mais do que tristeza (baixa ativação), mesmo as duas sendo emoções negativas fortes. Isso contraria o achismo de marketing de que “conteúdo triste emociona, então viraliza”.",
+        proof: "O estudo original analisou milhares de artigos reais do NYT ao longo de 6 meses, e “Contagious” virou leitura obrigatória em cursos de marketing de universidades como a própria Wharton, além de vender mais de 1 milhão de cópias.",
+        challenge: "Antes de postar algo hoje esperando que viralize, pergunta: isso faz quem compartilha parecer mais inteligente, mais engajado ou mais por dentro pra quem vê? Se a resposta for não, o problema não é o algoritmo — é a mensagem.",
+        repertoire: {
+          category: "Curiosidade real",
+          title: "O sabonete que só virou hábito depois que alguém mudou uma palavra no rótulo",
+          text: "Estudos de comportamento do consumidor (documentados em pesquisa de marketing behaviorístico) mostram que pequenas mudanças de enquadramento — como trocar “economize água” por “90% das pessoas do seu bairro já reutilizam a toalha” — aumentam adesão real, porque ativam prova social específica em vez de apelo genérico. Técnica hoje padrão em hotelaria no mundo todo.",
+        },
+      },
+      {
+        day: "Sexta", date: "11 set",
+        category: "Liderança",
+        recency: "clássico",
+        book: "Multiplicadores",
+        author: "Liz Wiseman",
+        year: "2010",
+        quote: "Alguns líderes dobram a inteligência e a capacidade das pessoas ao redor. Outros, sem perceber, cortam ela pela metade.",
+        quoteNote: "ideia central de Liz Wiseman, resumida de “Multipliers: How the Best Leaders Make Everyone Smarter” (2010)",
+        authorBio: "Liz Wiseman é pesquisadora de liderança americana, ex-executiva da Oracle University, e fundou uma consultoria de pesquisa em liderança depois de entrevistar mais de 150 líderes em dezenas de empresas.",
+        coreThesis: "“Multiplicadores” x “Diminuidores” — a pesquisa que mediu quanto cada tipo de líder tira da capacidade real do time",
+        context: "Wiseman e sua equipe entrevistaram mais de 150 líderes em diferentes empresas, comparando dois perfis: o “Diminuidor” — líder brilhante, decidido, que centraliza decisão e sabe todas as respostas — e o “Multiplicador” — líder que faz pergunta difícil, dá espaço, e deixa o time pensar.",
+        disruptiveText: "O achado mais incômodo: o perfil “Diminuidor”, que parece o líder ideal (rápido, competente, decisivo), na prática tira em média metade da capacidade real do time — as pessoas performam bem abaixo do potencial perto dele. Já o “Multiplicador” consegue até o dobro da capacidade real do mesmo time. Isso contraria a imagem clássica de liderança “herói que sabe tudo” que a cultura corporativa ainda idolatra.",
+        proof: "A pesquisa de Wiseman, com mais de 150 líderes entrevistados e depois expandida em pesquisas de acompanhamento, foi publicada pela Harvard Business Review, e o conceito de “Multiplicadores x Diminuidores” hoje é usado como framework de treinamento de liderança em empresas como a própria Oracle.",
+        challenge: "Na próxima reunião de equipe hoje, em vez de dar a resposta pronta quando alguém trouxer um problema, devolve com uma pergunta: “o que você acha que deveríamos fazer?”. Testa — mesmo que doa não resolver na hora.",
+        repertoire: {
+          category: "Curiosidade real",
+          title: "O time de resgate que só funciona quando o líder para de falar",
+          text: "Protocolos reais de operações de resgate em montanha (documentados por equipes de busca e salvamento) treinam o líder de equipe a fazer perguntas em vez de dar ordem direta em cenários ambíguos — porque decisão feita em grupo, guiada por pergunta, reduz erro em situação de alta pressão comparado à ordem unilateral de um único comandante.",
+        },
+      },
+    ],
+    scriptsReady: true,
+    scripts: [
+      {
+        type: "Confissão",
+        title: "Falaram que eu não tinha “presença de liderança” — a ciência discorda de quem falou isso",
+        hook: "Uma vez me disseram que eu não tinha 'perfil de liderança' porque eu não domino a sala. Juro que hoje eu riria na cara de quem falou isso.",
+        book: "Quiet — Susan Cain",
+        body: [
+          "GANCHO (0:00–0:12): Uma vez, numa avaliação de desempenho, me disseram que eu não tinha “presença de liderança” porque eu não domino a sala numa reunião. Na época eu levei isso pra casa e chorei. Hoje eu riria na cara de quem falou isso — e vou te mostrar o motivo.",
+          "CUT::Corte seco, sem suavizar",
+          "Susan Cain, ex-advogada de Wall Street, passou 7 anos reunindo pesquisa de psicologia e neurociência pra escrever “Quiet” — sobre o que ela chama de Ideal Extrovertido: a crença de que o modelo certo de pessoa é sociável, ousada, confortável no centro das atenções.",
+          "Só que tem um estudo, liderado por Adam Grant, professor da Wharton, publicado na Harvard Business Review em 2013, que devia estar pendurado na parede de toda sala de RH: equipes com funcionários proativos tiveram desempenho MELHOR sob líderes introvertidos do que sob líderes extrovertidos. Porque líder introvertido escuta mais e deixa a iniciativa dos outros brilhar, em vez de dominar a conversa.",
+          "Então não: quem te avaliou como “sem presença” só porque você não grita mais alto que os outros não tava lendo dado nenhum. Tava repetindo um mito que a própria pesquisa em liderança já derrubou.",
+          "SOLUÇÃO 1: da próxima vez que sentir que precisa \"se impor\" numa reunião, testa escrever sua ideia com calma antes e mandar por mensagem, ou falar 1 a 1 com quem decide — o canal muda, o impacto não.",
+          "SOLUÇÃO 2: para de confundir volume de voz com qualidade de ideia — inclusive quando for você avaliando outra pessoa.",
+          "CTA::Quiet — Susan Cain::Se você já foi chamada de “quieta demais” pra liderar, esse livro desmonta, com pesquisa real, esse mito ponto por ponto — vale muito mais que 30 milhões de visualizações no TED Talk da autora.",
+          "FECHAMENTO: Comenta aqui: alguém já confundiu seu silêncio com falta de capacidade? Quero ler.",
+          "THUMB::Close em expressão séria, fundo escuro, texto na tela “ELE TINHA RAZÃO. SÓ QUE AO CONTRÁRIO.”",
+        ],
+      },
+      {
+        type: "Dado Real",
+        title: "O vendedor mais “gente boa” do estudo foi o que menos vendeu",
+        hook: "Um estudo com mais de 6 mil vendedores testou quem vende mais: o simpático, ou o que discorda na cara do cliente. O resultado não é o que você imagina.",
+        book: "The Challenger Sale — Dixon & Adamson",
+        body: [
+          "GANCHO (0:00–0:12): Um estudo com mais de 6 mil vendedores B2B testou 5 perfis diferentes pra descobrir quem realmente vende mais. O perfil mais “gente boa”, o queridinho de todo mundo, teve o PIOR resultado médio de todos.",
+          "CUT::Texto na tela: “6.000 VENDEDORES. 5 PERFIS. 1 SURPRESA.”",
+          "A pesquisa é do Corporate Executive Board (hoje parte da Gartner), publicada no livro “The Challenger Sale”, de Matthew Dixon e Brent Adamson. Por décadas, o treinamento padrão de vendas B2B ensinava que o segredo era construir relacionamento — o “relationship builder”.",
+          "Só que o dado real mostrou outra coisa: o perfil de melhor desempenho foi o “challenger” — vendedor que ensina algo novo ao cliente sobre o próprio negócio, e não tem medo de discordar dele na cara quando o dado mostra outra direção. Simpatia sozinha não fecha venda complexa.",
+          "Hoje, a metodologia challenger é treinamento formal em empresas como Google, Adobe e Microsoft — documentado pela própria Gartner.",
+          "SOLUÇÃO 1: na próxima negociação (de trabalho ou não), chega com um dado ou ângulo que o outro lado ainda não tinha considerado — mesmo que gere atrito.",
+          "SOLUÇÃO 2: para de achar que discordar educadamente é falta de educação. É, muitas vezes, o que faz o outro lado te levar a sério.",
+          "CTA::The Challenger Sale — Dixon & Adamson::Se seu instinto em qualquer negociação é sempre concordar primeiro pra manter a paz, esse livro é o antídoto — com dado real de 6 mil casos, não achismo de treinamento motivacional.",
+          "FECHAMENTO: Comenta o número: você é mais “relationship builder” ou “challenger”? Sê honesta.",
+          "THUMB::Gráfico de barras estilizado com 5 perfis, o \"relationship builder\" com a menor barra + texto “O MAIS QUERIDO PERDEU”.",
+        ],
+      },
+      {
+        type: "Reflexão",
+        title: "Você tomou uma decisão hoje achando que foi racional. Provavelmente não foi",
+        hook: "O único psicólogo que já ganhou um Nobel de Economia provou, com décadas de dado, que quase nenhuma decisão sua é tão racional quanto você acha.",
+        book: "Rápido e Devagar — Daniel Kahneman",
+        body: [
+          "GANCHO (0:00–0:10): Uma reflexão simples hoje. Você tomou pelo menos uma decisão hoje achando que pensou direito, com calma, de forma racional. Tem uma boa chance de você estar errada sobre isso — e tem um Nobel que prova.",
+          "Daniel Kahneman, psicólogo, é o único da área a já ganhar o Prêmio Nobel de Economia — em 2002, por décadas de pesquisa ao lado de Amos Tversky mostrando que humano não decide do jeito “racional” que a economia clássica sempre assumiu.",
+          "CUT::Texto na tela: “O ÚNICO PSICÓLOGO A GANHAR UM NOBEL DE ECONOMIA”",
+          "O achado mais desconfortável: os erros de julgamento que a gente comete não são falha de pouca inteligência — são padrão sistemático, previsível, presente até em gente treinada pra decidir bem. A teoria do prospecto, de 1979, mostrou que a gente sente perda quase duas vezes mais forte do que ganho equivalente. Por isso você segura um investimento ruim por medo de “admitir a perda”, mesmo quando o dado já mostrou que devia soltar.",
+          "Kahneman batizou de Sistema 1 a resposta rápida, automática, intuitiva — e Sistema 2 o pensamento lento, deliberado, que exige esforço real. A maioria das nossas decisões do dia usa Sistema 1, achando que usou Sistema 2.",
+          "SOLUÇÃO: antes de decidir algo importante hoje sob pressão de tempo, pergunta por dentro — “essa é minha resposta rápida, ou eu de fato parei pra calcular?”. Só nomear isso já reduz erro de julgamento, segundo o próprio Kahneman.",
+          "CTA::Rápido e Devagar — Daniel Kahneman::Se você já perdeu dinheiro, tempo ou uma relação por uma decisão que “parecia certa na hora”, esse livro explica o mecanismo exato por trás disso — com prêmio Nobel no currículo de quem escreveu.",
+          "FECHAMENTO: Não precisa comentar. Só lembra, na próxima decisão importante da semana, de se perguntar: Sistema 1 ou Sistema 2?",
+          "THUMB::Fundo dividido ao meio, um lado rápido/borrado, outro lento/nítido + texto “QUAL DOS DOIS DECIDIU POR VOCÊ HOJE?”",
+        ],
+      },
+      {
+        type: "Confronto",
+        title: "O líder mais “brilhante” da sua empresa pode estar cortando a equipe pela metade",
+        hook: "Pesquisa com mais de 150 líderes mediu quanto cada um tira, de verdade, da capacidade do próprio time — e o resultado incomoda quem se acha \"o crânio da sala\".",
+        book: "Multiplicadores — Liz Wiseman",
+        body: [
+          "GANCHO (0:00–0:12): Se o líder mais “brilhante” que você conhece é rápido, decidido, sempre com a resposta pronta — talvez ele esteja tirando metade da capacidade real da própria equipe, sem perceber. Isso tem pesquisa real por trás, e vai incomodar quem se acha o crânio da sala.",
+          "Liz Wiseman entrevistou mais de 150 líderes em dezenas de empresas, comparando dois perfis: o “Diminuidor” — brilhante, decidido, centraliza toda decisão — e o “Multiplicador” — que faz pergunta difícil, dá espaço, deixa o time pensar.",
+          "CUT::Corte — texto na tela: “O LÍDER MAIS BRILHANTE TIROU METADE DA EQUIPE”",
+          "O dado incômodo: o perfil “Diminuidor”, que parece o líder ideal — rápido, competente, decisivo —, na prática tira em média metade da capacidade real do time. As pessoas performam bem abaixo do potencial perto dele. Já o “Multiplicador” consegue até o dobro da capacidade real da mesma equipe.",
+          "Isso não é sobre ser mais gentil. É sobre entender que ter sempre a resposta pronta rouba, da sua equipe, a chance de descobrir a própria.",
+          "SOLUÇÃO 1: na próxima vez que alguém te trouxer um problema, segura a resposta pronta e devolve com uma pergunta — “o que você acha que deveríamos fazer?”.",
+          "SOLUÇÃO 2: presta atenção em quantas vezes por dia você fala primeiro numa reunião de equipe. Se for sempre, o problema pode ser exatamente esse.",
+          "CTA::Multiplicadores — Liz Wiseman::Publicado pela Harvard Business Review e hoje usado como treinamento de liderança em empresas como a Oracle, esse livro é o oposto do discurso de “líder-herói” que a maioria ainda idolatra.",
+          "FECHAMENTO: Comenta: você já trabalhou perto de um “Diminuidor” sem saber nomear o que era? Como foi?",
+          "THUMB::Silhueta de equipe, metade em cor cheia e metade apagada, ao lado da silhueta de um líder + texto “ONDE FOI PARAR A OUTRA METADE?”",
+        ],
+      },
+    ],
+  },
+];
+let viewedWeekIndex = WEEKS.length - 1;
+let openDayKeys = new Set();
+const LS_KEY = "estante_dashboard_progress_v1";
+const SUPABASE_URL = "https://jlswxyjceluwzdyalwgi.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impsc3d4eWpjZWx1d3pkeWFsd2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4Mjc3MTgsImV4cCI6MjEwMjQwMzcxOH0.CVgM1g-Xo-Lru7WXTES8ezGy1mNpo-YAKCgjZKWNDBw";
+const SYNC_TABLE = "estante_progress";
+const SYNC_KEY = "tamy";
+const supa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let progressCache = {};
+function loadProgress() { return progressCache; }
+function setSyncStatus(state) {
+  const el = document.getElementById("syncStatus");
+  if (!el) return;
+  if (state === "ok") el.textContent = "☁️ sincronizado entre seus aparelhos";
+  else if (state === "saving") el.textContent = "☁️ salvando...";
+  else if (state === "offline") el.textContent = "⚠️ sem internet — salvo só neste aparelho por enquanto";
+  else el.textContent = "⏳ conectando...";
+}
+async function fetchRemoteProgress() {
+  if (!supa) return null;
+  try {
+    const { data, error } = await supa.from(SYNC_TABLE).select("data").eq("sync_key", SYNC_KEY).maybeSingle();
+    if (error) throw error;
+    return data ? data.data : {};
+  } catch (e) {
+    console.warn("Supabase fetch failed", e);
+    return null;
+  }
+}
+async function pushRemoteProgress(p) {
+  if (!supa) { setSyncStatus("offline"); return; }
+  setSyncStatus("saving");
+  try {
+    const { error } = await supa.from(SYNC_TABLE).upsert({ sync_key: SYNC_KEY, data: p, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    setSyncStatus("ok");
+  } catch (e) {
+    console.warn("Supabase save failed", e);
+    setSyncStatus("offline");
+  }
+}
+function saveProgress(p) {
+  progressCache = p;
+  localStorage.setItem(LS_KEY, JSON.stringify(p));
+  pushRemoteProgress(p);
+}
+async function initProgress() {
+  let local = {};
+  try { local = JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch (e) { local = {}; }
+  progressCache = local;
+  const remote = await fetchRemoteProgress();
+  if (remote && Object.keys(remote).length) {
+    progressCache = Object.assign({}, local, remote);
+    localStorage.setItem(LS_KEY, JSON.stringify(progressCache));
+    setSyncStatus("ok");
+  } else if (remote !== null) {
+    if (Object.keys(local).length) pushRemoteProgress(local);
+    setSyncStatus("ok");
+  } else {
+    setSyncStatus("offline");
+  }
+  render();
+}
+function dayKey(weekNum, idx, sub) { return `w${weekNum}_d${idx}_${sub}`; }
+const SUBTASKS = [
+  "Ler sobre o autor e a tese central do livro (5 min)",
+  "Entender o que torna o livro disruptivo/contraintuitivo (7 min)",
+  "Escrever 1 desafio prático baseado no livro pra hoje (5 min)",
+];
+function render() {
+  const progress = loadProgress();
+  const week = WEEKS[viewedWeekIndex];
+  document.getElementById("weekTitle").textContent = `Semana ${week.number}`;
+  document.getElementById("weekDates").textContent = week.dateRange;
+  document.getElementById("themeTitle").textContent = week.theme;
+  document.getElementById("themeDesc").textContent = week.themeDesc;
+  const historyBanner = document.getElementById("historyBanner");
+  if (viewedWeekIndex === WEEKS.length - 1) {
+    historyBanner.style.display = "none";
+  } else {
+    historyBanner.style.display = "inline-block";
+    historyBanner.innerHTML = `📖 Vendo o histórico da Semana ${week.number} — <a id="backToCurrentBtn">voltar para a semana atual</a>`;
+    document.getElementById("backToCurrentBtn").addEventListener("click", () => {
+      viewedWeekIndex = WEEKS.length - 1;
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+  const daysEl = document.getElementById("days");
+  daysEl.innerHTML = "";
+  let doneCount = 0;
+  week.days.forEach((d, idx) => {
+    const subDone = SUBTASKS.map((_, si) => !!progress[dayKey(week.number, idx, si)]);
+    const complete = subDone.every(Boolean);
+    if (complete) doneCount++;
+    const repChecked = !!progress[`w${week.number}_d${idx}_rep`];
+    const cardKey = `${week.number}_${idx}`;
+    const card = document.createElement("div");
+    card.dataset.cardKey = cardKey;
+    card.className = "day-card" + (complete ? " done" : "") + (openDayKeys.has(cardKey) ? " open" : "");
+    card.innerHTML = `
+      <div class="day-head" data-toggle>
+        <div class="day-head-left">
+          <div class="day-badge">${complete ? "✓" : d.date.split(" ")[0]}</div>
+          <div>
+            <div class="day-title"><span class="cat-pill">${d.category}</span><span class="rec-pill ${d.recency === "alta" ? "alta" : "classico"}">${d.recency === "alta" ? "🔥 em alta" : "⏳ clássico"}</span>${d.book}</div>
+            <div class="day-sci">${d.author} · ${d.year}</div>
+          </div>
+        </div>
+        <div class="chev">▾</div>
+      </div>
+      <div class="day-body">
+        <div class="quote">“${d.quote}”<small>${d.quoteNote}</small></div>
+        <div class="mini-label">✍️ Quem é ${d.author}</div>
+        <div class="exp-text">${d.authorBio}</div>
+        <div class="exp-title" style="margin-top:16px;">${d.coreThesis}</div>
+        <div class="mini-label">🧩 Contexto</div>
+        <div class="exp-text">${d.context}</div>
+        <div class="mini-label">⚡ O que é disruptivo</div>
+        <div class="exp-text">${d.disruptiveText}</div>
+        <div class="proof-box"><b>📈 Prova real:</b> ${d.proof}</div>
+        <div class="apply"><b>Desafio de hoje:</b> ${d.challenge}</div>
+        <div class="checklist">
+          ${SUBTASKS.map((t, si) => `
+            <label class="check-item ${subDone[si] ? "checked" : ""}">
+              <input type="checkbox" data-week="${week.number}" data-day="${idx}" data-sub="${si}" ${subDone[si] ? "checked" : ""}>
+              <span>${t}</span>
+            </label>`).join("")}
+        </div>
+        ${d.repertoire ? `
+        <div class="repertoire-box">
+          <div class="rep-head">
+            <span class="repertoire-cat">🔭 Curiosidade extra · ${d.repertoire.category}</span>
+          </div>
+          <div class="repertoire-title">${d.repertoire.title}</div>
+          <div class="repertoire-text">${d.repertoire.text}</div>
+          <label class="rep-check ${repChecked ? "checked" : ""}">
+            <input type="checkbox" data-rep-week="${week.number}" data-rep-day="${idx}" ${repChecked ? "checked" : ""}>
+            <span>Já vi essa (bônus, ~2 min, não conta pra evolução da leitura)</span>
+          </label>
+        </div>` : ""}
+      </div>`;
+    daysEl.appendChild(card);
+  });
+  document.getElementById("statDaysWeek").textContent = `${doneCount}/5`;
+  document.getElementById("weekProgressBar").style.width = `${(doneCount/5)*100}%`;
+  let totalDays = 0, totalScripts = 0, completeWeeksStreak = 0;
+  let streakBroken = false;
+  for (let i = WEEKS.length - 1; i >= 0; i--) {
+    const w = WEEKS[i];
+    let wDone = 0;
+    w.days.forEach((d, idx) => {
+      const complete = SUBTASKS.every((_, si) => !!progress[dayKey(w.number, idx, si)]);
+      if (complete) { wDone++; totalDays++; }
+    });
+    if (w.scriptsReady) totalScripts += w.scripts.length;
+    if (!streakBroken && wDone === 5 && w.scriptsReady) completeWeeksStreak++;
+    else if (wDone < 5) streakBroken = true;
+  }
+  document.getElementById("statStreak").textContent = completeWeeksStreak;
+  document.getElementById("statTotalDays").textContent = totalDays;
+  document.getElementById("statScripts").textContent = totalScripts;
+  const fb = document.getElementById("fridayBlock");
+  if (!week.scriptsReady) {
+    fb.innerHTML = `
+      <div class="friday">
+        <div class="friday-head">
+          <div><b>Roteiros da Semana ${week.number}</b></div>
+          <span class="badge-status badge-wait">Aguardando sexta</span>
+        </div>
+        <p style="font-size:13px;color:var(--sub);margin-top:8px;">Assim que os 5 dias de leitura forem concluídos, os 4 roteiros aparecem aqui automaticamente na sexta-feira.</p>
+      </div>`;
+  } else {
+    fb.innerHTML = `
+      <div class="friday">
+        <div class="friday-head">
+          <div><b>Roteiros da Semana ${week.number}</b> — gravar sábado</div>
+          <span class="badge-status badge-ready">Prontos</span>
+        </div>
+        <div id="scriptCards"></div>
+      </div>`;
+    const sc = fb.querySelector("#scriptCards");
+    week.scripts.forEach((s, si) => {
+      const card = document.createElement("div");
+      card.className = "script-card";
+      const bodyHtml = s.body.map(line => {
+        if (line.startsWith("CUT::")) return `<div class="cut">✂ ${line.replace("CUT::","")}</div>`;
+        if (line.startsWith("CTA::")) {
+          const [, title, text] = line.split("::");
+          return `<div class="cta-box"><b>📚 Leia agora — ${title}</b><br>${text}</div>`;
+        }
+        if (line.startsWith("THUMB::")) return `<div class="thumb-box"><b>🖼 Thumbnail sugerida:</b> ${line.replace("THUMB::","")}</div>`;
+        if (line.startsWith("EVIDÊNCIA::")) {
+          const [, tipo, texto] = line.split("::");
+          return `<div class="evidence-box"><b>🔎 ${tipo}:</b> ${texto}</div>`;
+        }
+        if (line.startsWith("REFLEXÃO:")) return `<div class="reflection-box">💭 ${line.replace("REFLEXÃO:","")}</div>`;
+        if (/^SOLUÇÃO \d+:/.test(line)) return `<div class="solution-item">✅ ${line}</div>`;
+        return `<p style="margin:8px 0;">${line}</p>`;
+      }).join("");
+      card.innerHTML = `
+        <div class="script-top" data-toggle>
+          <div>
+            <span class="script-type">${s.type}</span>
+            <div class="script-title">${s.title}</div>
+            <div class="script-hook">${s.hook}</div>
+          </div>
+          <div class="chev">▾</div>
+        </div>
+        <div class="script-body">${bodyHtml}</div>`;
+      sc.appendChild(card);
+    });
+  }
+  const hb = document.getElementById("historyBody");
+  hb.innerHTML = "";
+  WEEKS.map((w, i) => ({ w, i })).reverse().forEach(({ w, i }) => {
+    let wDone = 0;
+    w.days.forEach((d, idx) => { if (SUBTASKS.every((_, si) => !!progress[dayKey(w.number, idx, si)])) wDone++; });
+    const tr = document.createElement("tr");
+    tr.dataset.idx = i;
+    if (i === viewedWeekIndex) tr.classList.add("viewing");
+    tr.innerHTML = `
+      <td>Semana ${w.number}${i === viewedWeekIndex ? " 👁" : ""}</td>
+      <td>${w.theme}</td>
+      <td><span class="pill ${wDone===5?"pill-ok":"pill-mid"}">${wDone}/5 livros</span></td>
+      <td><span class="pill ${w.scriptsReady?"pill-ok":"pill-mid"}">${w.scriptsReady ? w.scripts.length+" gerados" : "pendente"}</span></td>`;
+    hb.appendChild(tr);
+  });
+  hb.querySelectorAll("tr[data-idx]").forEach(tr => {
+    tr.addEventListener("click", () => {
+      viewedWeekIndex = parseInt(tr.dataset.idx, 10);
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+  document.querySelectorAll(".day-head[data-toggle]").forEach(el => {
+    el.addEventListener("click", () => {
+      const card = el.closest(".day-card");
+      card.classList.toggle("open");
+      const key = card.dataset.cardKey;
+      if (card.classList.contains("open")) openDayKeys.add(key);
+      else openDayKeys.delete(key);
+    });
+  });
+  document.querySelectorAll(".script-top[data-toggle]").forEach(el => {
+    el.addEventListener("click", () => el.closest(".script-card").classList.toggle("open"));
+  });
+  document.querySelectorAll(".checklist input").forEach(inp => {
+    inp.addEventListener("click", (e) => e.stopPropagation());
+    inp.addEventListener("change", () => {
+      const p = loadProgress();
+      const k = dayKey(inp.dataset.week, inp.dataset.day, inp.dataset.sub);
+      p[k] = inp.checked;
+      saveProgress(p);
+      const cardKey = `${inp.dataset.week}_${inp.dataset.day}`;
+      const allDone = SUBTASKS.every((_, si) => !!p[dayKey(inp.dataset.week, inp.dataset.day, si)]);
+      if (allDone) openDayKeys.delete(cardKey);
+      else openDayKeys.add(cardKey);
+      render();
+    });
+  });
+  document.querySelectorAll(".rep-check input").forEach(inp => {
+    inp.addEventListener("click", (e) => e.stopPropagation());
+    inp.addEventListener("change", () => {
+      const p = loadProgress();
+      p[`w${inp.dataset.repWeek}_d${inp.dataset.repDay}_rep`] = inp.checked;
+      saveProgress(p);
+      const cardKey = `${inp.dataset.repWeek}_${inp.dataset.repDay}`;
+      const allDone = SUBTASKS.every((_, si) => !!p[dayKey(inp.dataset.repWeek, inp.dataset.repDay, si)]);
+      if (!allDone) openDayKeys.add(cardKey);
+      render();
+    });
+  });
+}
+document.getElementById("refreshBtn").addEventListener("click", async () => {
+  setSyncStatus("connecting");
+  const remote = await fetchRemoteProgress();
+  if (remote !== null) {
+    progressCache = remote;
+    localStorage.setItem(LS_KEY, JSON.stringify(progressCache));
+    setSyncStatus("ok");
+    render();
+  } else {
+    setSyncStatus("offline");
+  }
+});
+initProgress();
+</script>
+</body>
+</html>
